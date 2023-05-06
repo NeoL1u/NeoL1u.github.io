@@ -1,0 +1,225 @@
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-image: url("https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1200px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg");
+            background-size: cover;
+        }
+
+        canvas {
+            border: 5px solid black;
+            display: block;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <audio id="song" src="https://www.dropbox.com/s/4q3y1w7z6x9jv8a/Coldplay%20-%20A%20Sky%20Full%20Of%20Stars.mp3?dl=1" preload="auto"></audio>
+    <audio id="beep" src="https://www.dropbox.com/s/2kxq7h2z9rj6n2o/beep.mp3?dl=1" preload="auto"></audio>
+    <script>
+        // Get the canvas element and its context
+        var canvas = document.getElementById("canvas");
+        var ctx = canvas.getContext("2d");
+
+        // Get the audio elements
+        var song = document.getElementById("song");
+        var beep = document.getElementById("beep");
+
+        // Define some constants
+        var tileSize = 20; // The size of each tile in pixels
+        var rows = canvas.height / tileSize; // The number of rows in the grid
+        var cols = canvas.width / tileSize; // The number of columns in the grid
+        var fps = 10; // The frames per second
+        var snakeColors = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]; // The colors of the snake
+        var foodColor = "white"; // The color of the food
+        var gridColor = "white"; // The color of the grid lines
+
+        // Define some variables
+        var snake; // An array of tiles that represents the snake
+        var food; // An object that represents the food
+        var direction; // A string that represents the direction of the snake
+        var score; // A number that represents the score
+
+        // Initialize the game
+        function init() {
+            // Create a new snake with three tiles at the center of the grid
+            snake = [
+                {x: Math.floor(cols / 2), y: Math.floor(rows / 2)},
+                {x: Math.floor(cols / 2) - 1, y: Math.floor(rows / 2)},
+                {x: Math.floor(cols / 2) - 2, y: Math.floor(rows / 2)}
+            ];
+
+            // Set the initial direction to right
+            direction = "right";
+
+            // Create a new food at a random position on the grid
+            createFood();
+
+            // Set the initial score to zero
+            score = 0;
+
+            // Play the song
+            song.play();
+
+            // Start the game loop
+            loop();
+        }
+
+        // Create a new food at a random position on the grid
+        function createFood() {
+            // Generate a random x and y coordinate on the grid
+            var x = Math.floor(Math.random() * cols);
+            var y = Math.floor(Math.random() * rows);
+
+            // Check if the food overlaps with the snake
+            for (var i = 0; i < snake.length; i++) {
+                if (snake[i].x == x && snake[i].y == y) {
+                    // If yes, generate a new food and return
+                    createFood();
+                    return;
+                }
+            }
+
+            // If no, set the food to the generated position
+            food = {x: x, y: y};
+        }
+
+        // Update the game logic
+        function update() {
+            // Get the head of the snake
+            var head = snake[0];
+
+            // Get the next position of the head based on the direction
+            var nextX = head.x;
+            var nextY = head.y;
+
+            switch (direction) {
+                case "right":
+                    nextX++;
+                    break;
+                case "left":
+                    nextX--;
+                    break;
+                case "up":
+                    nextY--;
+                    break;
+                case "down":
+                    nextY++;
+                    break;
+            }
+
+            // Check if the next position is out of bounds or overlaps with the snake body
+            if (nextX < 0 || nextX >= cols || nextY < 0 || nextY >= rows || isSnake(nextX, nextY)) {
+                // If yes, end the game and alert the score
+                alert("Game over! Your score is " + score);
+                window.location.reload();
+                return;
+            }
+
+            // If no, create a new tile for the next position and add it to the front of the snake array
+            var newHead = {x: nextX, y: nextY};
+            snake.unshift(newHead);
+
+            // Check if the next position is the same as the food position
+            if (nextX == food.x && nextY == food.y) {
+                // If yes, create a new food and increase the score
+                createFood();
+                score++;
+
+                // Play the beep sound
+                beep.play();
+            } else {
+                // If no, remove the last tile of the snake array
+                snake.pop();
+            }
+        }
+
+        // Draw the game graphics
+        function draw() {
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the snake
+            for (var i = 0; i < snake.length; i++) {
+                var tile = snake[i];
+                // Cycle through the snake colors based on the index
+                ctx.fillStyle = snakeColors[i % snakeColors.length];
+                ctx.fillRect(tile.x * tileSize, tile.y * tileSize, tileSize, tileSize);
+            }
+
+            // Draw the food
+            ctx.fillStyle = foodColor;
+            ctx.fillRect(food.x * tileSize, food.y * tileSize, tileSize, tileSize);
+
+            // Draw the grid lines
+            ctx.strokeStyle = gridColor;
+            for (var x = 0; x < cols; x++) {
+                for (var y = 0; y < rows; y++) {
+                    ctx.strokeRect(x * tileSize, y * tileSize, tileSize, tileSize);
+                }
+            }
+
+            // Draw the score
+            ctx.fillStyle = "white";
+            ctx.font = "20px Arial";
+            ctx.fillText("Score: " + score, 10, 30);
+        }
+
+        // Handle the keyboard input
+        function keydown(e) {
+            // Get the key code of the pressed key
+            var key = e.keyCode;
+
+            // Change the direction based on the key code
+            switch (key) {
+                case 37: // Left arrow
+                    if (direction != "right") {
+                        direction = "left";
+                    }
+                    break;
+                case 38: // Up arrow
+                    if (direction != "down") {
+                        direction = "up";
+                    }
+                    break;
+                case 39: // Right arrow
+                    if (direction != "left") {
+                        direction = "right";
+                    }
+                    break;
+                case 40: // Down arrow
+                    if (direction != "up") {
+                        direction = "down";
+                    }
+                    break;
+            }
+        }
+
+        // Check if a given position is part of the snake
+        function isSnake(x, y) {
+            for (var i = 0; i < snake.length; i++) {
+                if (snake[i].x == x && snake[i].y == y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Run the game loop at a fixed interval
+        function loop() {
+            update();
+            draw();
+            setTimeout(loop, 1000 / fps);
+        }
+
+        // Add an event listener for the keydown event
+        window.addEventListener("keydown", keydown);
+
+        // Call the init function to start the game
+        init();
+    </script>
+</body>
+</html>
